@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/api.ts","./src/main.tsx","./src/vite-env.d.ts","./src/components/chartofaccounts.tsx","./src/components/errorboundary.tsx","./src/components/ledger.tsx","./src/components/setupwizard.tsx","./src/components/statementimport.tsx","./src/components/transactionform.tsx"],"version":"5.9.3"}

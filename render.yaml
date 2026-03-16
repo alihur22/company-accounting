@@ -1,0 +1,19 @@
+# Deploy to Render.com (free tier)
+# 1. Push this repo to GitHub
+# 2. Go to render.com → New → Web Service
+# 3. Connect your GitHub repo, select this repo
+# 4. Render uses this file - Deploy
+# 5. Your app is at https://company-accounting-xxx.onrender.com (full stack: frontend + API)
+# No need for Surge - the Dockerfile serves both!
+
+services:
+  - type: web
+    name: company-accounting
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: UPLOAD_DIR
+        value: /app/uploads
+      - key: STATIC_DIR
+        value: /app/static
