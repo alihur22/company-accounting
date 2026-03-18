@@ -1,32 +1,29 @@
 # Deploy to Render
 
-## Prerequisites
+The app is configured for PostgreSQL (required for Render – SQLite doesn't persist).
 
-1. **PostgreSQL database** – Render's free tier doesn't persist SQLite. Add a PostgreSQL database in Render:
-   - Dashboard → New → PostgreSQL
-   - Copy the **Internal Database URL**.
+## 1. Create PostgreSQL database
 
-2. **Environment variables** – In your web service settings, add:
-   - `DATABASE_URL` – Your PostgreSQL connection string (from step 1)
-   - `NEXTAUTH_SECRET` – Generate a random string (e.g. `openssl rand -base64 32`)
-   - `NEXTAUTH_URL` – Your app URL (e.g. `https://your-app.onrender.com`)
+- Render Dashboard → New → PostgreSQL
+- Copy the **Internal Database URL**
 
-## Steps
+## 2. Environment variables
 
-1. Connect your GitHub repo: https://github.com/alihur22/company-accounting
-2. Create a **Web Service** from the repo
-3. **Build command:** `npm install && npx prisma generate && npx prisma migrate deploy && npm run build`
-4. **Start command:** `npm start`
-5. Add the environment variables above
-6. Deploy
+In your web service settings, add:
 
-## Database migration
+| Variable | Value |
+|----------|-------|
+| `DATABASE_URL` | Your PostgreSQL connection string (from step 1) |
+| `NEXTAUTH_SECRET` | Generate with `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | Your app URL (e.g. `https://company-accounting-tkdm.onrender.com`) |
 
-Before first deploy, the app uses SQLite locally. For Render you need PostgreSQL:
+## 3. Deploy
 
-1. In Render, create a PostgreSQL database first
-2. Set `DATABASE_URL` to the PostgreSQL URL
-3. Update `prisma/schema.prisma` to use `postgresql` instead of `sqlite` when `DATABASE_URL` contains `postgres`
-4. Or create a separate `schema.prisma` for production - the simplest approach is to change the datasource provider to `postgresql` and add a migration
+- Connect GitHub repo
+- Use Docker (render.yaml is configured)
+- Migrations run automatically on container startup
+- Seed runs to populate currencies
 
-**Quick fix:** Change `prisma/schema.prisma` line 6 from `provider = "sqlite"` to `provider = "postgresql"` before deploying, then run `npx prisma migrate dev --name init` locally to create migrations, commit and push.
+## Local development
+
+Use PostgreSQL (e.g. [Neon](https://neon.tech) free tier) or switch schema to SQLite for local dev.

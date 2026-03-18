@@ -1,5 +1,5 @@
-# Deploy to Render: connect GitHub, add PostgreSQL database, set env vars:
-# DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL (your app URL)
+# Deploy to Render: connect GitHub, add PostgreSQL database, link it to this service.
+# In Dashboard: add env var NEXTAUTH_URL = https://your-app.onrender.com
 services:
   - type: web
     name: company-accounting
