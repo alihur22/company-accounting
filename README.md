@@ -38,6 +38,10 @@ SaaS-style accounting application built with Next.js 14, Prisma, and PostgreSQL.
 
 4. Open http://localhost:3000 and register a new account.
 
+### Deploy to Railway
+
+See [DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md) for step-by-step instructions. Add a Postgres database, set `DATABASE_URL` (via Variable Reference), `NEXTAUTH_SECRET`, and `NEXTAUTH_URL`.
+
 ### Deploy to Render
 
 1. Push to GitHub

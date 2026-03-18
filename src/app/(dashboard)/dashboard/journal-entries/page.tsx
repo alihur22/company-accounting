@@ -25,6 +25,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -68,6 +75,7 @@ export default function JournalEntriesPage() {
     date: format(new Date(), "yyyy-MM-dd"),
     description: "",
     reference: "",
+    amountsAre: "taxExclusive" as "taxExclusive" | "taxInclusive" | "noTax",
     lines: [{ accountId: "", debit: "", credit: "", currencyId: "" }] as LineForm[],
   });
   const [error, setError] = useState("");
@@ -113,6 +121,7 @@ export default function JournalEntriesPage() {
       date: format(new Date(), "yyyy-MM-dd"),
       description: "",
       reference: "",
+      amountsAre: "taxExclusive",
       lines: [
         {
           accountId: "",
@@ -125,6 +134,11 @@ export default function JournalEntriesPage() {
     setDialogOpen(true);
     setError("");
   };
+
+  const totalDebit = form.lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0);
+  const totalCredit = form.lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0);
+  const netTotal = totalDebit - totalCredit;
+  const isBalanced = Math.abs(netTotal) < 0.01;
 
   const addLine = () => {
     setForm((f) => ({
@@ -422,7 +436,7 @@ export default function JournalEntriesPage() {
             {error && (
               <p className="text-sm text-destructive">{error}</p>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Date</label>
                 <Input
@@ -439,6 +453,24 @@ export default function JournalEntriesPage() {
                   onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
                   placeholder="Optional"
                 />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Amounts are</label>
+                <Select
+                  value={form.amountsAre}
+                  onValueChange={(v: "taxExclusive" | "taxInclusive" | "noTax") =>
+                    setForm((f) => ({ ...f, amountsAre: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="taxExclusive">Tax Exclusive</SelectItem>
+                    <SelectItem value="taxInclusive">Tax Inclusive</SelectItem>
+                    <SelectItem value="noTax">No Tax</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-2">
@@ -525,6 +557,25 @@ export default function JournalEntriesPage() {
                 ))}
               </div>
             </div>
+            <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-end gap-6 text-sm">
+                <span className="text-muted-foreground">
+                  Total Debit: <span className="font-mono font-medium text-foreground">{totalDebit.toFixed(2)}</span>
+                </span>
+                <span className="text-muted-foreground">
+                  Total Credit: <span className="font-mono font-medium text-foreground">{totalCredit.toFixed(2)}</span>
+                </span>
+                <span
+                  className={
+                    isBalanced
+                      ? "font-mono font-medium text-green-600 dark:text-green-400"
+                      : "font-mono font-medium text-destructive"
+                  }
+                >
+                  Net: {netTotal.toFixed(2)} {isBalanced ? "✓ Balanced" : "— Debits must equal credits"}
+                </span>
+              </div>
+            </div>
             <DialogFooter>
               <Button
                 type="button"
@@ -533,7 +584,7 @@ export default function JournalEntriesPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving}>
+              <Button type="submit" disabled={saving || !isBalanced || form.lines.length < 2}>
                 {saving ? "Saving…" : "Save"}
               </Button>
             </DialogFooter>

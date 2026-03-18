@@ -32,7 +32,7 @@ import { toast } from "sonner";
 import { format, subDays } from "date-fns";
 import { parseStatementCSV } from "@/lib/statement-parser";
 
-type Account = { id: string; code: string; name: string };
+type Account = { id: string; code: string; name: string; subType: string | null };
 type BankStatementLineSplit = {
   id: string;
   amount: number;
@@ -371,7 +371,7 @@ export default function ReconciliationPage() {
   };
 
   const accountOptions = (accounts ?? [])
-    .filter((a) => a?.code?.startsWith("1"))
+    .filter((a) => a?.subType === "BANK" || a?.code?.startsWith("1"))
     .map((a) => ({ value: a.id, label: `${a.code} - ${a.name}` }));
 
   // Flatten all bank lines from statements for this account
