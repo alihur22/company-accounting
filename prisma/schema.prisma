@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  companyId    String?   @map("company_id")
+  company      Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+}
+
+model Company {
+  id                 String         @id @default(cuid())
+  name               String
+  financialYearStart  String         @map("financial_year_start") // MM-DD e.g. "01-01"
+  financialYearEnd    String         @map("financial_year_end")   // MM-DD e.g. "12-31"
+  baseCurrencyId     String         @map("base_currency_id")
+  baseCurrency       Currency       @relation(fields: [baseCurrencyId], references: [id])
+  users              User[]
+  chartOfAccounts    ChartOfAccount[]
+  accounts           Account[]
+  journalEntries     JournalEntry[]
+  bankStatements     BankStatement[]
+}
+
+// Chart of Accounts: the structure/template (categories like 1000 Cash, 1100 Bank)
+model ChartOfAccount {
+  id         String        @id @default(cuid())
+  companyId  String        @map("company_id")
+  company    Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  code       String
+  name       String
+  type       String        // ASSET | LIABILITY | EQUITY | REVENUE | EXPENSE
+  parentId   String?       @map("parent_id")
+  parent     ChartOfAccount?  @relation("ChartHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children   ChartOfAccount[] @relation("ChartHierarchy")
+
+  @@unique([companyId, code])
+}
+
+model Currency {
+  id            String         @id @default(cuid())
+  code          String         @unique
+  name          String
+  symbol        String?
+  isBase        Boolean        @default(false) @map("is_base")
+  companies     Company[]
+  exchangeRates ExchangeRate[]
+  accounts      Account[]
+  ledgerEntries LedgerEntry[]
+}
+
+model ExchangeRate {
+  id         String   @id @default(cuid())
+  currencyId String   @map("currency_id")
+  currency   Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+  rateToBase Float    @map("rate_to_base")
+  date       DateTime
+  source     String?
+
+  @@unique([currencyId, date])
+}
+
+// Account: posting accounts (e.g. Chase Checking, Fidelity)
+model Account {
+  id            String        @id @default(cuid())
+  companyId     String        @map("company_id")
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  code          String
+  name          String
+  type          String        // ASSET | LIABILITY | EQUITY | REVENUE | EXPENSE
+  subType       String?       @map("sub_type")  // BANK | INVESTMENT | RECEIVABLE | PAYABLE | null
+  parentId      String?       @map("parent_id")
+  parent        Account?      @relation("AccountHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children      Account[]     @relation("AccountHierarchy")
+  currencyId    String?       @map("currency_id")
+  currency      Currency?     @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+  isSystem      Boolean       @default(false) @map("is_system")
+  ledgerEntries LedgerEntry[]
+  bankStatements BankStatement[]
+
+  @@unique([companyId, code])
+}
+
+model JournalEntry {
+  id             String        @id @default(cuid())
+  companyId      String        @map("company_id")
+  company        Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  date           DateTime
+  description    String?
+  reference      String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  ledgerEntries  LedgerEntry[]
+}
+
+model LedgerEntry {
+  id                   String            @id @default(cuid())
+  journalEntryId       String            @map("journal_entry_id")
+  journalEntry         JournalEntry      @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  accountId            String            @map("account_id")
+  account              Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  debit                Float             // 0 if credit line
+  credit               Float             // 0 if debit line
+  currencyId           String            @map("currency_id")
+  currency             Currency          @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+  amountInBase         Float             @map("amount_in_base") // For reporting in base currency
+  bankStatementLines   BankStatementLine[]
+  bankStatementLineSplits BankStatementLineSplit[]
+}
+
+model BankStatement {
+  id        String              @id @default(cuid())
+  companyId String              @map("company_id")
+  company   Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  accountId String              @map("account_id")
+  account   Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  fromDate  DateTime            @map("from_date")
+  toDate    DateTime            @map("to_date")
+  createdAt DateTime            @default(now()) @map("created_at")
+  lines     BankStatementLine[]
+}
+
+model BankStatementLine {
+  id               String                  @id @default(cuid())
+  bankStatementId  String                  @map("bank_statement_id")
+  bankStatement    BankStatement           @relation(fields: [bankStatementId], references: [id], onDelete: Cascade)
+  date             DateTime
+  description      String?
+  amount           Float                   // positive=deposit, negative=withdrawal
+  ledgerEntryId    String?                 @map("ledger_entry_id")
+  ledgerEntry      LedgerEntry?            @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+  splits           BankStatementLineSplit[]
+}
+
+model BankStatementLineSplit {
+  id               String            @id @default(cuid())
+  bankStatementLineId String          @map("bank_statement_line_id")
+  bankStatementLine  BankStatementLine @relation(fields: [bankStatementLineId], references: [id], onDelete: Cascade)
+  amount           Float
+  ledgerEntryId    String            @map("ledger_entry_id")
+  ledgerEntry      LedgerEntry       @relation(fields: [ledgerEntryId], references: [id], onDelete: Cascade)
+}

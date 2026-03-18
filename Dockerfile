@@ -1,33 +1,29 @@
-# Build frontend
-FROM node:20-alpine AS frontend
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
+FROM node:20-alpine AS base
+
+FROM base AS deps
+WORKDIR /app
+COPY package*.json ./
 RUN npm ci
-COPY frontend/ ./
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npx prisma generate
 RUN npm run build
 
-# Production image
-FROM python:3.12-slim
+FROM base AS runner
 WORKDIR /app
-
-# Install dependencies
-COPY backend/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy backend
-COPY backend/ ./backend/
-
-# Copy built frontend from previous stage
-COPY --from=frontend /app/frontend/dist ./static
-
-# Create uploads and data directories
-RUN mkdir -p /app/uploads /app/data
-
-ENV STATIC_DIR=/app/static
-ENV UPLOAD_DIR=/app/uploads
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
-
-EXPOSE 8000
-
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+USER nextjs
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+CMD ["node", "server.js"]

@@ -1,47 +1,51 @@
-# Company Accounting Tool
+# Company Accounting
 
-Simple double-entry accounting and bookkeeping for your company.
-
-## Quick Start
-
-### Backend
-
-```bash
-cd accounting-tool
-pip install -r backend/requirements.txt
-python3 -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-API runs at http://127.0.0.1:8000
-
-### Frontend
-
-```bash
-cd accounting-tool/frontend
-npm install
-npm run dev
-```
-
-App runs at http://localhost:5173
-
-### Docker (production build)
-
-```bash
-docker-compose up --build
-```
-
-App runs at http://localhost:8000
+SaaS-style accounting application built with Next.js 14, Prisma, and PostgreSQL.
 
 ## Features
 
-- **Setup Wizard**: Xero-style guided flow (Bank → Expense heads → Revenue)
-- **Chart of Accounts**: Create accounts with category and currency (PKR, USD, AED)
-- **Ledger**: Record double-entry transactions, transfers, split expenses
-- **Attachments**: Attach invoices, receipts, or evidence to any transaction (PDF, images)
-- **Statement Import**: Upload Bank Al Habib CSV, review, split entries, create transactions
-- **Filters**: Date range and account filter for transactions
+- **Authentication**: Register, login, session management
+- **Company profile**: Business details, financial year, base currency
+- **Chart of Accounts**: CRUD with 5 root types (Asset, Liability, Equity, Revenue, Expense), sub-accounts, unique codes
+- **Multi-currency**: Currencies with exchange rates (ExchangeRate-API)
+- **Dark/Light theme**: Toggle with persistent preference
+- **Responsive layout**: Collapsible sidebar, searchable dropdowns
 
-## Deploy Online
+## Setup
 
-- **Full stack (Docker)**: [DEPLOY.md](DEPLOY.md) – Railway, Render, Fly.io
-- **Frontend on Surge**: [SURGE_DEPLOY.md](SURGE_DEPLOY.md) – static frontend on Surge; backend on Railway/Render
+### Prerequisites
+
+- Node.js 20+
+- PostgreSQL (or use [Neon](https://neon.tech) free tier for local dev)
+
+### Local development
+
+1. Copy `.env.example` to `.env` and set:
+   - `DATABASE_URL` – PostgreSQL connection string
+   - `NEXTAUTH_SECRET` – run `openssl rand -base64 32`
+   - `NEXTAUTH_URL` – `http://localhost:3000`
+
+2. Create database and run migrations:
+   ```bash
+   npx prisma db push
+   npm run db:seed
+   ```
+
+3. Start the app:
+   ```bash
+   npm run dev
+   ```
+
+4. Open http://localhost:3000 and register a new account.
+
+### Deploy to Render
+
+1. Push to GitHub
+2. Create a new Web Service on [Render](https://render.com)
+3. Connect your repo, select Docker
+4. Add a PostgreSQL database (Render provides one)
+5. Set environment variables:
+   - `DATABASE_URL` – from your Render Postgres
+   - `NEXTAUTH_SECRET` – generate a random string
+   - `NEXTAUTH_URL` – your Render app URL (e.g. https://company-accounting-xxx.onrender.com)
+6. Deploy. Run `prisma db push` manually once (or add to build) to create tables.
