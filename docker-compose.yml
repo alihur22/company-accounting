@@ -1,0 +1,37 @@
+# For self-hosted deployment (Devrims, DigitalOcean, etc.)
+# Usage: docker compose up -d
+# Set env vars in .env or below
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: accounting
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+      POSTGRES_DB: accounting
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U accounting"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://accounting:${POSTGRES_PASSWORD:-change-me-in-production}@db:5432/accounting
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
